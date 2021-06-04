@@ -1,3 +1,6 @@
+
+https://user-images.githubusercontent.com/39611941/120728405-ced64280-c517-11eb-909e-5659ff284885.mp4
+
 # ipad-lidar-stream
 Stream iPad lidar data with open3d
 
