@@ -1,6 +1,7 @@
-# ipad-lidar-stream
-![](https://github.com/kentaroy47/ipad-lidar-stream/blob/main/Open3D%202021-06-03%2014-44-07.mp4)
 
+https://user-images.githubusercontent.com/39611941/120728405-ced64280-c517-11eb-909e-5659ff284885.mp4
+
+# ipad-lidar-stream
 Stream iPad lidar data with open3d
 
 Uses [record3d](https://github.com/marek-simonik/record3d) to stream lidar data, and visualizes point clouds by open3d.
