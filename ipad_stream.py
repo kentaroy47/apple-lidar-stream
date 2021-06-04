@@ -58,12 +58,11 @@ class DemoApp:
         # get intrinsic parameters
         intrinsic_mat = self.get_intrinsic_mat_from_coeffs(self.session.get_intrinsic_mat())
         self.rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(np.array(rgb)), o3d.geometry.Image(np.array(depth, order="c")), convert_rgb_to_intensity=False)
-        self.intrinsic_mat = intrinsic_mat
         
         # setup point clouds
-        intrinsic = o3d.camera.PinholeCameraIntrinsic(256, 192, getter.intrinsic_mat[0,0]/4, getter.intrinsic_mat[1,1]/4, getter.intrinsic_mat[0,2]/4, getter.intrinsic_mat[1,2]/4)
+        intrinsic = o3d.camera.PinholeCameraIntrinsic(256, 192, intrinsic_mat[0,0]/4, intrinsic_mat[1,1]/4, intrinsic_mat[0,2]/4, intrinsic_mat[1,2]/4)
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-            getter.rgbd,
+            self.rgbd,
             intrinsic)
         self.pcd = pcd
         # add geometry
