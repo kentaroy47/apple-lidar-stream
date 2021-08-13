@@ -60,6 +60,8 @@ class DemoApp:
         self.rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(np.array(rgb)), o3d.geometry.Image(np.array(depth, order="c")), convert_rgb_to_intensity=False)
         
         # setup point clouds
+        # lidar depth map = 256x192
+        # intrinsics work well divided by 4 than the given value from record3d
         intrinsic = o3d.camera.PinholeCameraIntrinsic(256, 192, intrinsic_mat[0,0]/4, intrinsic_mat[1,1]/4, intrinsic_mat[0,2]/4, intrinsic_mat[1,2]/4)
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
             self.rgbd,
