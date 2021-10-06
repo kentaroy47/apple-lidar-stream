@@ -2,7 +2,7 @@
 https://user-images.githubusercontent.com/39611941/120728405-ced64280-c517-11eb-909e-5659ff284885.mp4
 
 # ipad-lidar-stream
-Stream iPad lidar data with open3d
+Stream Apple lidar data (e.g. iPad Pro) with open3d.
 
 Please leave a star if this helps you!
 
@@ -16,3 +16,8 @@ Enjoy!
 `pip install -r requirements.txt`
 
 `python ipad_stream.py`
+
+## Devices
+Since I have only iPad Pro, I cannot test this on iPhone 12Pro or 13Pro.
+
+However, the lidar sensors are the same and the same codes should work.
