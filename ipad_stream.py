@@ -66,7 +66,11 @@ class DemoApp:
         # setup point clouds
         # lidar depth map = 256x192
         # intrinsics work well divided by 4 than the given value from record3d
-        self.intrinsic = o3d.camera.PinholeCameraIntrinsic(256, 192, intrinsic_mat[0,0]/4, intrinsic_mat[1,1]/4, intrinsic_mat[0,2]/4, intrinsic_mat[1,2]/4)
+        self.intrinsic = o3d.camera.PinholeCameraIntrinsic(*np.shape(self.session.get_depth_frame()),
+                                                           intrinsic_mat[0,0]/4,
+                                                           intrinsic_mat[1,1]/4,
+                                                           intrinsic_mat[0,2]/4,
+                                                           intrinsic_mat[1,2]/4)
         self.pcd = self.create_point_cloud()
         # add geometry
         self.vis.add_geometry(self.pcd)
