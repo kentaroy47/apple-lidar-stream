@@ -18,6 +18,6 @@ Enjoy!
 `python ipad_stream.py`
 
 ## Devices
-Since I have only iPad Pro, I cannot test this on iPhone 12Pro or 13Pro.
+~~Since I have only iPad Pro, I cannot test this on iPhone 12Pro or 13Pro.~~
 
-However, the lidar sensors are the same and the same codes should work.
+Thanks to [#2](https://github.com/kentaroy47/apple-lidar-stream/pull/2), it works on iPhone LiDARs too.
