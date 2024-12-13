@@ -17,6 +17,9 @@ class DemoApp:
         self.session = None
         self.vis = o3d.visualization.Visualizer()
         self.vis.create_window()
+        self.filter_enabled = False
+        self.recording = False
+        self.recorded_frames = []
         
     def on_new_frame(self):
         """
@@ -57,6 +60,35 @@ class DemoApp:
                                                                   convert_rgb_to_intensity=False)
         return o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, self.intrinsic)
 
+    def save_point_cloud(self, pcd, filename="captured_pointcloud.ply"):
+        o3d.io.write_point_cloud(filename, pcd)
+        
+    def record_frame(self):
+        if self.recording:
+            self.recorded_frames.append(copy.deepcopy(self.pcd))
+    
+    def save_recording(self, filename="recording.ply"):
+        if self.recorded_frames:
+            # Combine all frames into one point cloud
+            combined = self.recorded_frames[0]
+            for frame in self.recorded_frames[1:]:
+                combined += frame
+            self.save_point_cloud(combined, filename)
+            self.recorded_frames = []
+
+    def process_point_cloud(self, pcd):
+        if self.filter_enabled:
+            # Statistical outlier removal
+            pcd, _ = pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=2.0)
+            
+            # Voxel downsampling for performance
+            pcd = pcd.voxel_down_sample(voxel_size=0.01)
+            
+            # Optional: Estimate normals for better visualization
+            pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
+        
+        return pcd
+    
     def start_processing_stream(self):
         self.event.wait()  # Wait for new frame to arrive
         
@@ -74,6 +106,24 @@ class DemoApp:
         self.pcd = self.create_point_cloud()
         # add geometry
         self.vis.add_geometry(self.pcd)
+
+        # Add key callback for controls
+        def key_callback(vis, action, mods):
+            if action == ord('F'):  # Toggle filtering
+                self.filter_enabled = not self.filter_enabled
+                print(f"Filtering: {'enabled' if self.filter_enabled else 'disabled'}")
+            elif action == ord('R'):  # Toggle recording
+                self.recording = not self.recording
+                print(f"Recording: {'started' if self.recording else 'stopped'}")
+            elif action == ord('S'):  # Save current frame
+                self.save_point_cloud(self.pcd)
+                print("Frame saved")
+            elif action == ord('E'):  # End recording and save
+                self.save_recording()
+                print("Recording saved")
+            return True
+            
+        self.vis.register_key_callback(key_callback)
         
         # Loop for point clouds
         while True:
@@ -81,6 +131,12 @@ class DemoApp:
 
             # update pointclouds
             pcd = self.create_point_cloud()
+            pcd = self.process_point_cloud(pcd)
+
+            # Record frame if enabled
+            self.record_frame()
+            
+            # Update visualization
             self.pcd.points = pcd.points
             self.pcd.colors = pcd.colors
             
