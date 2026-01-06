@@ -21,7 +21,7 @@ cd apple-lidar-stream
 pip install -r requirements.txt
 ```
 
-3. Install the Record3D app on your Apple device from the App Store
+3. Install the [Record3D app](https://record3d.app/) on your Apple device from the App Store
 
 ## Usage
 
