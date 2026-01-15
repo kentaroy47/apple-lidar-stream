@@ -2,7 +2,7 @@
 https://user-images.githubusercontent.com/39611941/120728405-ced64280-c517-11eb-909e-5659ff284885.mp4
 
 # ipad-lidar-stream
-Stream Apple lidar data (e.g. iPad Pro) with open3d.
+Stream Apple lidar data (e.g. iPad Pro / iPhone Pro) with open3d.
 
 Please leave a star if this helps you!
 
@@ -12,7 +12,7 @@ Uses [record3d](https://github.com/marek-simonik/record3d) to stream lidar data,
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/apple-lidar-stream.git
+git clone https://github.com/kentaroy47/apple-lidar-stream.git
 cd apple-lidar-stream
 ```
 
