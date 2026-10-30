@@ -4,18 +4,18 @@ ipad pointcloud streaming with open3d
 by kentaroy47
 """
 
+import argparse
 import copy
 import numpy as np
 import open3d as o3d
 import cv2
-from record3d import Record3DStream
 from threading import Event
 
 class DemoApp:
     def __init__(self):
         self.event = Event()
         self.session = None
-        self.vis = o3d.visualization.Visualizer()
+        self.vis = o3d.visualization.VisualizerWithKeyCallback()
         self.vis.create_window()
         self.filter_enabled = False
         self.recording = False
@@ -31,6 +31,7 @@ class DemoApp:
         print('Stream stopped')
 
     def connect_to_device(self, dev_idx):
+        from record3d import Record3DStream
         print('Searching for devices')
         devs = Record3DStream.get_connected_devices()
         print('{} device(s) found'.format(len(devs)))
@@ -46,6 +47,17 @@ class DemoApp:
         self.session.on_new_frame = self.on_new_frame
         self.session.on_stream_stopped = self.on_stream_stopped
         self.session.connect(dev)  # Initiate connection and start capturing
+        # intrinsics work well divided by 4 than the given value from record3d
+        self.intrinsic_divisor = 4
+
+    def connect_to_nerfcapture(self, iface=None, peer=None):
+        from nerfcapture import NeRFCaptureStream
+        self.session = NeRFCaptureStream(iface, peer)
+        self.session.on_new_frame = self.on_new_frame
+        self.session.on_stream_stopped = self.on_stream_stopped
+        self.session.connect()
+        # NeRFCapture intrinsics are already scaled to the depth map
+        self.intrinsic_divisor = 1
 
     def get_intrinsic_mat_from_coeffs(self, coeffs):
         return np.array([[coeffs.fx,         0, coeffs.tx],
@@ -55,8 +67,11 @@ class DemoApp:
     def create_point_cloud(self):
         depth = self.session.get_depth_frame()
         rgb = cv2.resize(self.session.get_rgb_frame(), np.flip(np.shape(depth)))
+        # depth is float32 in meters (open3d assumes millimeters by default)
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb),
                                                                   o3d.geometry.Image(depth),
+                                                                  depth_scale=1.0,
+                                                                  depth_trunc=5.0,
                                                                   convert_rgb_to_intensity=False)
         return o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, self.intrinsic)
 
@@ -97,37 +112,50 @@ class DemoApp:
 
         # setup point clouds
         # lidar depth map = 256x192
-        # intrinsics work well divided by 4 than the given value from record3d
+        d = self.intrinsic_divisor
         self.intrinsic = o3d.camera.PinholeCameraIntrinsic(*np.shape(self.session.get_depth_frame()),
-                                                           intrinsic_mat[0,0]/4,
-                                                           intrinsic_mat[1,1]/4,
-                                                           intrinsic_mat[0,2]/4,
-                                                           intrinsic_mat[1,2]/4)
+                                                           intrinsic_mat[0,0]/d,
+                                                           intrinsic_mat[1,1]/d,
+                                                           intrinsic_mat[0,2]/d,
+                                                           intrinsic_mat[1,2]/d)
         self.pcd = self.create_point_cloud()
         # add geometry
         self.vis.add_geometry(self.pcd)
 
-        # Add key callback for controls
-        def key_callback(vis, action, mods):
-            if action == ord('F'):  # Toggle filtering
-                self.filter_enabled = not self.filter_enabled
-                print(f"Filtering: {'enabled' if self.filter_enabled else 'disabled'}")
-            elif action == ord('R'):  # Toggle recording
-                self.recording = not self.recording
-                print(f"Recording: {'started' if self.recording else 'stopped'}")
-            elif action == ord('S'):  # Save current frame
-                self.save_point_cloud(self.pcd)
-                print("Frame saved")
-            elif action == ord('E'):  # End recording and save
-                self.save_recording()
-                print("Recording saved")
+        # Add key callbacks for controls
+        def toggle_filter(vis):
+            self.filter_enabled = not self.filter_enabled
+            print(f"Filtering: {'enabled' if self.filter_enabled else 'disabled'}")
             return True
-            
-        self.vis.register_key_callback(key_callback)
+
+        def toggle_recording(vis):
+            self.recording = not self.recording
+            print(f"Recording: {'started' if self.recording else 'stopped'}")
+            return True
+
+        def save_frame(vis):
+            self.save_point_cloud(self.pcd)
+            print("Frame saved")
+            return True
+
+        def end_recording(vis):
+            self.save_recording()
+            print("Recording saved")
+            return True
+
+        self.vis.register_key_callback(ord('F'), toggle_filter)
+        self.vis.register_key_callback(ord('R'), toggle_recording)
+        self.vis.register_key_callback(ord('S'), save_frame)
+        self.vis.register_key_callback(ord('E'), end_recording)
         
         # Loop for point clouds
         while True:
-            self.event.wait()  # Wait for new frame to arrive
+            # Wait for new frame to arrive, keeping the window responsive
+            # (NeRFCapture only sends a frame when Send is tapped)
+            if not self.event.wait(timeout=0.03):
+                self.vis.poll_events()
+                self.vis.update_renderer()
+                continue
 
             # update pointclouds
             pcd = self.create_point_cloud()
@@ -149,6 +177,16 @@ class DemoApp:
             self.event.clear()
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source', choices=['record3d', 'nerfcapture'], default='record3d',
+                        help='record3d: Record3D app over USB. nerfcapture: free NeRFCapture app over Wi-Fi.')
+    parser.add_argument('--iface', help='nerfcapture: IP address of the network interface connected to the device')
+    parser.add_argument('--peer', help='nerfcapture: IP address of the device, when multicast discovery does not work')
+    args = parser.parse_args()
+
     getter = DemoApp()
-    getter.connect_to_device(dev_idx=0)
+    if args.source == 'nerfcapture':
+        getter.connect_to_nerfcapture(args.iface, args.peer)
+    else:
+        getter.connect_to_device(dev_idx=0)
     getter.start_processing_stream()

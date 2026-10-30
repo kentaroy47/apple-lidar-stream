@@ -32,6 +32,47 @@ pip install -r requirements.txt
 python ipad_stream.py
 ```
 
+### Free alternative: NeRFCapture (Wi-Fi)
+
+If you don't want to buy Record3D, you can use [NeRFCapture](https://github.com/jc211/NeRFCapture), a free and open-source (MIT) iOS app that sends RGB + LiDAR depth over Wi-Fi with [CycloneDDS](https://github.com/eclipse-cyclonedds/cyclonedds).
+
+Unlike Record3D, NeRFCapture is not a continuous stream: **one frame is sent each time you tap Send** in the app, and the point cloud is updated on every tap.
+
+1. Install [NeRFCapture](https://apps.apple.com/us/app/nerfcapture/id6446518379) on a LiDAR iPhone / iPad
+2. Install CycloneDDS **0.10.x** on your computer. The app was built with an older CycloneDDS and **crashes when it sees a newer (11.x) peer**. 0.10.5 has wheels for Python 3.7 - 3.10 only:
+```bash
+conda create -n lidar python=3.10
+conda activate lidar
+pip install -r requirements.txt "cyclonedds==0.10.5"
+```
+3. Connect the computer and the device to the same network, and switch the app to **Online** mode
+4. Run the streaming script, then tap **Send** in the app once it shows `1 Connection(s)`:
+```bash
+python ipad_stream.py --source nerfcapture
+```
+
+#### Troubleshooting
+
+To check the connection without Open3D, run the receiver alone. It prints one line per received frame (resolution, depth range, intrinsics):
+```bash
+python nerfcapture.py
+```
+
+If the app crashes, check that `cyclonedds==0.10.5` is installed (see above).
+
+If the app keeps showing `0 Connection(s)`:
+* **Several network interfaces (VPN, Ethernet + Wi-Fi, ...)**: CycloneDDS may listen on the wrong one. Pass the computer's IP address on the network shared with the device:
+```bash
+python ipad_stream.py --source nerfcapture --iface 192.168.0.10
+```
+* **Multicast blocked**: some routers and university / corporate Wi-Fi block the multicast that DDS uses for discovery. Pass the device's IP address (Settings > Wi-Fi > (i)) to connect to it directly:
+```bash
+python ipad_stream.py --source nerfcapture --iface 192.168.0.10 --peer 192.168.0.20
+```
+* **Local Network permission (iOS)**: Settings > Privacy & Security > Local Network > NeRFCapture must be on.
+* **Windows**: allow Python through Windows Defender Firewall when prompted. If your Wi-Fi is set to a *Public* network, allow it for public networks too.
+* Restart the app after starting the script on the computer.
+
 ### Keyboard Controls
 
 The application supports the following keyboard shortcuts:
